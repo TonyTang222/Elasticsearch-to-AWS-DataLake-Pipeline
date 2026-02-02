@@ -10,7 +10,7 @@ from etls.elasticsearch_etl import (
     extract_documents_by_time_range,
     transform_data,
     load_data_to_csv,
-    load_data_to_parquet
+    load_data_to_parquet,
 )
 from utils.constants import ES_HOST, ES_PORT, ES_INDEX, ES_USERNAME, ES_PASSWORD, OUTPUT_PATH
 from utils.validators import DataValidator
@@ -24,8 +24,8 @@ def elasticsearch_pipeline(
     query: dict = None,
     time_range_hours: int = 24,
     use_time_filter: bool = True,
-    output_format: str = 'parquet',
-    validate: bool = True
+    output_format: str = "parquet",
+    validate: bool = True,
 ) -> str:
     """
     Main ETL pipeline for extracting data from Elasticsearch.
@@ -56,7 +56,7 @@ def elasticsearch_pipeline(
         host=ES_HOST,
         port=int(ES_PORT),
         username=ES_USERNAME if ES_USERNAME else None,
-        password=ES_PASSWORD if ES_PASSWORD else None
+        password=ES_PASSWORD if ES_PASSWORD else None,
     )
 
     # Extract documents
@@ -66,17 +66,10 @@ def elasticsearch_pipeline(
         logger.info(f"Extracting documents from {start_time} to {end_time}")
 
         documents = extract_documents_by_time_range(
-            client=client,
-            index=index_name,
-            start_time=start_time,
-            end_time=end_time
+            client=client, index=index_name, start_time=start_time, end_time=end_time
         )
     else:
-        documents = extract_documents(
-            client=client,
-            index=index_name,
-            query=query
-        )
+        documents = extract_documents(client=client, index=index_name, query=query)
 
     if not documents:
         raise ValueError(f"No documents extracted from index '{index_name}'")
@@ -93,7 +86,7 @@ def elasticsearch_pipeline(
     if validate:
         validator = DataValidator()
         validator.validate_row_count(source_count, len(docs_df))
-        validator.validate_no_duplicates(docs_df, key_columns=['id'])
+        validator.validate_no_duplicates(docs_df, key_columns=["id"])
 
         quality_report = validator.get_data_quality_report(docs_df)
         logger.info(f"Data quality report: {quality_report}")
@@ -102,7 +95,7 @@ def elasticsearch_pipeline(
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
     # Save output
-    if output_format == 'parquet':
+    if output_format == "parquet":
         output_file = f"{OUTPUT_PATH}/{file_name}.parquet"
         load_data_to_parquet(docs_df, output_file)
     else:

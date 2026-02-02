@@ -2,7 +2,7 @@ import configparser
 import os
 
 parser = configparser.ConfigParser()
-parser.read(os.path.join(os.path.dirname(__file__), '../config/config.conf'))
+parser.read(os.path.join(os.path.dirname(__file__), "../config/config.conf"))
 
 
 def get_config(section: str, key: str, env_var: str = None, default: str = None) -> str:
@@ -38,18 +38,22 @@ def get_config(section: str, key: str, env_var: str = None, default: str = None)
 
 
 # Elasticsearch
-ES_HOST = get_config('elasticsearch', 'elasticsearch_host', 'ES_HOST', 'localhost')
-ES_PORT = get_config('elasticsearch', 'elasticsearch_port', 'ES_PORT', '9200')
-ES_INDEX = get_config('elasticsearch', 'elasticsearch_index', 'ES_INDEX', 'logs')
-ES_USERNAME = get_config('elasticsearch', 'elasticsearch_username', 'ES_USERNAME', '')
-ES_PASSWORD = get_config('elasticsearch', 'elasticsearch_password', 'ES_PASSWORD', '')
+ES_HOST = get_config("elasticsearch", "elasticsearch_host", "ES_HOST", "localhost")
+ES_PORT = get_config("elasticsearch", "elasticsearch_port", "ES_PORT", "9200")
+ES_INDEX = get_config("elasticsearch", "elasticsearch_index", "ES_INDEX", "logs")
+ES_USERNAME = get_config("elasticsearch", "elasticsearch_username", "ES_USERNAME", "")
+ES_PASSWORD = get_config("elasticsearch", "elasticsearch_password", "ES_PASSWORD", "")
 
 # AWS - environment variables and IAM roles are preferred over config file
-AWS_ACCESS_KEY_ID = get_config('aws', 'aws_access_key_id', 'AWS_ACCESS_KEY_ID', '')
-AWS_SECRET_ACCESS_KEY = get_config('aws', 'aws_secret_access_key', 'AWS_SECRET_ACCESS_KEY', '')
-AWS_REGION = get_config('aws', 'aws_region', 'AWS_REGION', 'us-east-1')
-AWS_BUCKET_NAME = get_config('aws', 'aws_bucket_name', 'AWS_BUCKET_NAME', '')
+AWS_ACCESS_KEY_ID = get_config("aws", "aws_access_key_id", "AWS_ACCESS_KEY_ID", "")
+AWS_SECRET_ACCESS_KEY = get_config("aws", "aws_secret_access_key", "AWS_SECRET_ACCESS_KEY", "")
+AWS_REGION = get_config("aws", "aws_region", "AWS_REGION", "us-east-1")
+AWS_BUCKET_NAME = get_config("aws", "aws_bucket_name", "AWS_BUCKET_NAME", "")
+
+# API
+API_HOST = get_config("api", "api_host", "API_HOST", "0.0.0.0")
+API_PORT = get_config("api", "api_port", "API_PORT", "8000")
 
 # File Paths
-INPUT_PATH = get_config('file_paths', 'input_path', 'INPUT_PATH', '/opt/airflow/data/input')
-OUTPUT_PATH = get_config('file_paths', 'output_path', 'OUTPUT_PATH', '/opt/airflow/data/output')
+INPUT_PATH = get_config("file_paths", "input_path", "INPUT_PATH", "/opt/airflow/data/input")
+OUTPUT_PATH = get_config("file_paths", "output_path", "OUTPUT_PATH", "/opt/airflow/data/output")

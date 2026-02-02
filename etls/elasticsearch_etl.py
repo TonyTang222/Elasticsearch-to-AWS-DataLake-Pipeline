@@ -28,37 +28,26 @@ def connect_elasticsearch(host: str, port: int, username: str = None, password: 
     try:
         if username and password:
             client = Elasticsearch(
-                hosts=[{'host': host, 'port': port, 'scheme': 'http'}],
-                basic_auth=(username, password)
+                hosts=[{"host": host, "port": port, "scheme": "http"}], basic_auth=(username, password)
             )
         else:
-            client = Elasticsearch(
-                hosts=[{'host': host, 'port': port, 'scheme': 'http'}]
-            )
+            client = Elasticsearch(hosts=[{"host": host, "port": port, "scheme": "http"}])
 
         # Test connection
         if client.ping():
             logger.info(f"Connected to Elasticsearch at {host}:{port}")
             return client
         else:
-            raise ElasticsearchConnectionError(
-                f"Failed to ping Elasticsearch at {host}:{port}"
-            )
+            raise ElasticsearchConnectionError(f"Failed to ping Elasticsearch at {host}:{port}")
 
     except ElasticsearchConnectionError:
         raise
     except Exception as e:
-        raise ElasticsearchConnectionError(
-            f"Failed to connect to Elasticsearch at {host}:{port}: {e}"
-        ) from e
+        raise ElasticsearchConnectionError(f"Failed to connect to Elasticsearch at {host}:{port}: {e}") from e
 
 
 def extract_documents(
-    client: Elasticsearch,
-    index: str,
-    query: dict = None,
-    size: int = 1000,
-    scroll: str = '2m'
+    client: Elasticsearch, index: str, query: dict = None, size: int = 1000, scroll: str = "2m"
 ) -> list:
     """
     Extract documents from Elasticsearch index using scroll API for large datasets.
@@ -84,38 +73,26 @@ def extract_documents(
 
     try:
         # Initial search with scroll
-        response = client.search(
-            index=index,
-            query=query,
-            size=size,
-            scroll=scroll
-        )
+        response = client.search(index=index, query=query, size=size, scroll=scroll)
 
-        scroll_id = response['_scroll_id']
-        hits = response['hits']['hits']
+        scroll_id = response["_scroll_id"]
+        hits = response["hits"]["hits"]
 
         while len(hits) > 0:
             for hit in hits:
-                doc = {
-                    'id': hit['_id'],
-                    'index': hit['_index'],
-                    'score': hit.get('_score'),
-                    **hit['_source']
-                }
+                doc = {"id": hit["_id"], "index": hit["_index"], "score": hit.get("_score"), **hit["_source"]}
                 documents.append(doc)
 
             # Get next batch
             response = client.scroll(scroll_id=scroll_id, scroll=scroll)
-            scroll_id = response['_scroll_id']
-            hits = response['hits']['hits']
+            scroll_id = response["_scroll_id"]
+            hits = response["hits"]["hits"]
 
         logger.info(f"Extracted {len(documents)} documents from index '{index}'")
         return documents
 
     except Exception as e:
-        raise ElasticsearchExtractionError(
-            f"Failed to extract documents from index '{index}': {e}"
-        ) from e
+        raise ElasticsearchExtractionError(f"Failed to extract documents from index '{index}': {e}") from e
 
     finally:
         # Always clean up scroll context to prevent resource leaks
@@ -129,10 +106,10 @@ def extract_documents(
 def extract_documents_by_time_range(
     client: Elasticsearch,
     index: str,
-    timestamp_field: str = '@timestamp',
+    timestamp_field: str = "@timestamp",
     start_time: datetime = None,
     end_time: datetime = None,
-    size: int = 1000
+    size: int = 1000,
 ) -> list:
     """
     Extract documents within a specific time range.
@@ -153,14 +130,7 @@ def extract_documents_by_time_range(
     if start_time is None:
         start_time = end_time - timedelta(hours=24)
 
-    query = {
-        "range": {
-            timestamp_field: {
-                "gte": start_time.isoformat(),
-                "lte": end_time.isoformat()
-            }
-        }
-    }
+    query = {"range": {timestamp_field: {"gte": start_time.isoformat(), "lte": end_time.isoformat()}}}
 
     return extract_documents(client, index, query, size)
 
@@ -180,21 +150,19 @@ def transform_data(docs_df: pd.DataFrame) -> pd.DataFrame:
         return docs_df
 
     # Convert timestamp fields if present
-    timestamp_columns = ['@timestamp', 'timestamp', 'created_at', 'updated_at']
+    timestamp_columns = ["@timestamp", "timestamp", "created_at", "updated_at"]
     for col in timestamp_columns:
         if col in docs_df.columns:
-            docs_df[col] = pd.to_datetime(docs_df[col], errors='coerce')
+            docs_df[col] = pd.to_datetime(docs_df[col], errors="coerce")
 
     # Add extraction metadata
-    docs_df['extracted_at'] = datetime.now(timezone.utc)
+    docs_df["extracted_at"] = datetime.now(timezone.utc)
 
     # Handle nested JSON fields - flatten if needed
     for col in docs_df.columns:
         if docs_df[col].apply(lambda x: isinstance(x, dict)).any():
             # Convert dict columns to JSON strings for CSV compatibility
-            docs_df[col] = docs_df[col].apply(
-                lambda x: str(x) if isinstance(x, dict) else x
-            )
+            docs_df[col] = docs_df[col].apply(lambda x: str(x) if isinstance(x, dict) else x)
 
     logger.info(f"Transformed DataFrame with {len(docs_df)} rows and {len(docs_df.columns)} columns")
     return docs_df
@@ -216,7 +184,7 @@ def load_data_to_csv(data: pd.DataFrame, path: str) -> str:
     return path
 
 
-def load_data_to_parquet(data: pd.DataFrame, path: str, compression: str = 'snappy') -> str:
+def load_data_to_parquet(data: pd.DataFrame, path: str, compression: str = "snappy") -> str:
     """
     Save DataFrame to Parquet file with compression.
 
@@ -228,6 +196,6 @@ def load_data_to_parquet(data: pd.DataFrame, path: str, compression: str = 'snap
     Returns:
         Path to saved file
     """
-    data.to_parquet(path, index=False, compression=compression, engine='pyarrow')
+    data.to_parquet(path, index=False, compression=compression, engine="pyarrow")
     logger.info(f"Data saved to Parquet: {path} (compression={compression})")
     return path

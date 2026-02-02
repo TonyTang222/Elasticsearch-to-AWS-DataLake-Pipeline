@@ -1,0 +1,15 @@
+target-version = "py310"
+line-length = 120
+
+exclude = [
+    "venv",
+    "data",
+    "logs",
+    ".git",
+]
+
+[lint]
+select = ["E", "F", "W"]
+
+[lint.per-file-ignores]
+"dags/*.py" = ["E402"]  # sys.path manipulation requires imports after path setup
