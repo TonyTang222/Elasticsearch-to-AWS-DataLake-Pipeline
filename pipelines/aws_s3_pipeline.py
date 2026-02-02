@@ -3,18 +3,12 @@ import glob
 import logging
 
 from etls.aws_etl import connect_to_s3, create_bucket_if_not_exists, upload_file_to_s3
-from utils.constants import (
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
-    AWS_REGION,
-    AWS_BUCKET_NAME,
-    OUTPUT_PATH
-)
+from utils.constants import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_BUCKET_NAME, OUTPUT_PATH
 
 logger = logging.getLogger(__name__)
 
 
-def upload_s3_pipeline(file_path: str = None, s3_prefix: str = 'raw/elasticsearch') -> str:
+def upload_s3_pipeline(file_path: str = None, s3_prefix: str = "raw/elasticsearch") -> str:
     """
     Upload extracted data to S3.
 
@@ -34,7 +28,7 @@ def upload_s3_pipeline(file_path: str = None, s3_prefix: str = 'raw/elasticsearc
     s3_client = connect_to_s3(
         aws_access_key_id=AWS_ACCESS_KEY_ID if AWS_ACCESS_KEY_ID else None,
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY if AWS_SECRET_ACCESS_KEY else None,
-        region=AWS_REGION
+        region=AWS_REGION,
     )
 
     # Ensure bucket exists
@@ -54,10 +48,7 @@ def upload_s3_pipeline(file_path: str = None, s3_prefix: str = 'raw/elasticsearc
 
     # Upload to S3
     s3_uri = upload_file_to_s3(
-        s3_client=s3_client,
-        local_file_path=file_path,
-        bucket_name=AWS_BUCKET_NAME,
-        prefix=s3_prefix
+        s3_client=s3_client, local_file_path=file_path, bucket_name=AWS_BUCKET_NAME, prefix=s3_prefix
     )
 
     logger.info(f"S3 upload pipeline completed. File uploaded to: {s3_uri}")

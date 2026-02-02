@@ -13,12 +13,7 @@ logger = logging.getLogger(__name__)
 class DataValidator:
     """Validates data quality throughout the pipeline."""
 
-    def validate_schema(
-        self,
-        df: pd.DataFrame,
-        required_columns: List[str],
-        raise_on_error: bool = True
-    ) -> bool:
+    def validate_schema(self, df: pd.DataFrame, required_columns: List[str], raise_on_error: bool = True) -> bool:
         """
         Validate that DataFrame contains required columns.
 
@@ -46,11 +41,7 @@ class DataValidator:
         return True
 
     def validate_row_count(
-        self,
-        source_count: int,
-        target_count: int,
-        tolerance: float = 0.0,
-        raise_on_error: bool = True
+        self, source_count: int, target_count: int, tolerance: float = 0.0, raise_on_error: bool = True
     ) -> bool:
         """
         Validate row counts match between source and target.
@@ -74,10 +65,7 @@ class DataValidator:
         diff_ratio = abs(source_count - target_count) / source_count
 
         if diff_ratio > tolerance:
-            error_msg = (
-                f"Row count mismatch: source={source_count}, "
-                f"target={target_count}, diff={diff_ratio:.2%}"
-            )
+            error_msg = f"Row count mismatch: source={source_count}, target={target_count}, diff={diff_ratio:.2%}"
             logger.error(error_msg)
             if raise_on_error:
                 raise DataValidationError(error_msg)
@@ -86,12 +74,7 @@ class DataValidator:
         logger.info(f"Row count validation passed: {target_count}/{source_count} rows")
         return True
 
-    def validate_no_duplicates(
-        self,
-        df: pd.DataFrame,
-        key_columns: List[str],
-        raise_on_error: bool = True
-    ) -> bool:
+    def validate_no_duplicates(self, df: pd.DataFrame, key_columns: List[str], raise_on_error: bool = True) -> bool:
         """
         Validate no duplicate records based on key columns.
 
@@ -118,10 +101,7 @@ class DataValidator:
         duplicate_count = duplicates.sum()
 
         if duplicate_count > 0:
-            error_msg = (
-                f"Found {duplicate_count} duplicate records "
-                f"based on columns: {existing_keys}"
-            )
+            error_msg = f"Found {duplicate_count} duplicate records based on columns: {existing_keys}"
             logger.error(error_msg)
             if raise_on_error:
                 raise DataValidationError(error_msg)
@@ -130,12 +110,7 @@ class DataValidator:
         logger.info(f"Duplicate validation passed: no duplicates found on {existing_keys}")
         return True
 
-    def validate_not_null(
-        self,
-        df: pd.DataFrame,
-        columns: List[str],
-        raise_on_error: bool = True
-    ) -> bool:
+    def validate_not_null(self, df: pd.DataFrame, columns: List[str], raise_on_error: bool = True) -> bool:
         """
         Validate that specified columns have no null values.
 
@@ -179,16 +154,16 @@ class DataValidator:
             Dictionary containing data quality metrics
         """
         report = {
-            'row_count': len(df),
-            'column_count': len(df.columns),
-            'columns': list(df.columns),
-            'null_counts': {k: int(v) for k, v in df.isnull().sum().to_dict().items()},
-            'dtypes': df.dtypes.astype(str).to_dict(),
-            'memory_usage_mb': round(df.memory_usage(deep=True).sum() / 1024 / 1024, 2),
+            "row_count": len(df),
+            "column_count": len(df.columns),
+            "columns": list(df.columns),
+            "null_counts": {k: int(v) for k, v in df.isnull().sum().to_dict().items()},
+            "dtypes": df.dtypes.astype(str).to_dict(),
+            "memory_usage_mb": round(df.memory_usage(deep=True).sum() / 1024 / 1024, 2),
         }
 
-        if 'id' in df.columns:
-            report['duplicate_ids'] = int(df['id'].duplicated().sum())
+        if "id" in df.columns:
+            report["duplicate_ids"] = int(df["id"].duplicated().sum())
 
         logger.info(
             f"Data quality report: {report['row_count']} rows, "

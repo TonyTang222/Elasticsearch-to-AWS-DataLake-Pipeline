@@ -20,24 +20,16 @@ class TestValidateSchema:
         return DataValidator()
 
     def test_schema_validation_passes(self, validator, sample_dataframe):
-        result = validator.validate_schema(
-            sample_dataframe,
-            required_columns=['id', 'message']
-        )
+        result = validator.validate_schema(sample_dataframe, required_columns=["id", "message"])
         assert result is True
 
     def test_schema_validation_fails_on_missing_column(self, validator, sample_dataframe):
         with pytest.raises(DataValidationError, match="Missing required columns"):
-            validator.validate_schema(
-                sample_dataframe,
-                required_columns=['id', 'nonexistent_column']
-            )
+            validator.validate_schema(sample_dataframe, required_columns=["id", "nonexistent_column"])
 
     def test_schema_validation_returns_false_without_raise(self, validator, sample_dataframe):
         result = validator.validate_schema(
-            sample_dataframe,
-            required_columns=['id', 'nonexistent_column'],
-            raise_on_error=False
+            sample_dataframe, required_columns=["id", "nonexistent_column"], raise_on_error=False
         )
         assert result is False
 
@@ -78,32 +70,20 @@ class TestValidateNoDuplicates:
         return DataValidator()
 
     def test_no_duplicates_passes(self, validator, sample_dataframe):
-        result = validator.validate_no_duplicates(
-            sample_dataframe,
-            key_columns=['id']
-        )
+        result = validator.validate_no_duplicates(sample_dataframe, key_columns=["id"])
         assert result is True
 
     def test_duplicates_detected(self, validator):
-        df = pd.DataFrame({
-            'id': ['1', '1', '2'],
-            'value': ['a', 'b', 'c']
-        })
+        df = pd.DataFrame({"id": ["1", "1", "2"], "value": ["a", "b", "c"]})
         with pytest.raises(DataValidationError, match="duplicate"):
-            validator.validate_no_duplicates(df, key_columns=['id'])
+            validator.validate_no_duplicates(df, key_columns=["id"])
 
     def test_empty_key_columns_passes(self, validator, sample_dataframe):
-        result = validator.validate_no_duplicates(
-            sample_dataframe,
-            key_columns=[]
-        )
+        result = validator.validate_no_duplicates(sample_dataframe, key_columns=[])
         assert result is True
 
     def test_missing_key_columns_passes(self, validator, sample_dataframe):
-        result = validator.validate_no_duplicates(
-            sample_dataframe,
-            key_columns=['nonexistent']
-        )
+        result = validator.validate_no_duplicates(sample_dataframe, key_columns=["nonexistent"])
         assert result is True
 
 
@@ -115,25 +95,21 @@ class TestValidateNotNull:
         return DataValidator()
 
     def test_no_nulls_passes(self, validator, sample_dataframe):
-        result = validator.validate_not_null(
-            sample_dataframe,
-            columns=['id', 'message']
-        )
+        result = validator.validate_not_null(sample_dataframe, columns=["id", "message"])
         assert result is True
 
     def test_nulls_detected(self, validator):
-        df = pd.DataFrame({
-            'id': ['1', None, '3'],
-            'value': ['a', 'b', 'c']
-        })
+        df = pd.DataFrame({"id": ["1", None, "3"], "value": ["a", "b", "c"]})
         with pytest.raises(DataValidationError, match="Null values found"):
-            validator.validate_not_null(df, columns=['id'])
+            validator.validate_not_null(df, columns=["id"])
 
     def test_nulls_returns_false_without_raise(self, validator):
-        df = pd.DataFrame({
-            'id': ['1', None, '3'],
-        })
-        result = validator.validate_not_null(df, columns=['id'], raise_on_error=False)
+        df = pd.DataFrame(
+            {
+                "id": ["1", None, "3"],
+            }
+        )
+        result = validator.validate_not_null(df, columns=["id"], raise_on_error=False)
         assert result is False
 
 
@@ -147,24 +123,21 @@ class TestDataQualityReport:
     def test_report_contains_expected_fields(self, validator, sample_dataframe):
         report = validator.get_data_quality_report(sample_dataframe)
 
-        assert report['row_count'] == 3
-        assert report['column_count'] == 4
-        assert 'id' in report['columns']
-        assert 'null_counts' in report
-        assert 'dtypes' in report
-        assert 'memory_usage_mb' in report
+        assert report["row_count"] == 3
+        assert report["column_count"] == 4
+        assert "id" in report["columns"]
+        assert "null_counts" in report
+        assert "dtypes" in report
+        assert "memory_usage_mb" in report
 
     def test_report_includes_duplicate_ids(self, validator):
-        df = pd.DataFrame({
-            'id': ['1', '1', '2'],
-            'value': ['a', 'b', 'c']
-        })
+        df = pd.DataFrame({"id": ["1", "1", "2"], "value": ["a", "b", "c"]})
         report = validator.get_data_quality_report(df)
 
-        assert report['duplicate_ids'] == 1
+        assert report["duplicate_ids"] == 1
 
     def test_report_without_id_column(self, validator):
-        df = pd.DataFrame({'value': ['a', 'b']})
+        df = pd.DataFrame({"value": ["a", "b"]})
         report = validator.get_data_quality_report(df)
 
-        assert 'duplicate_ids' not in report
+        assert "duplicate_ids" not in report

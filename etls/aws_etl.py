@@ -10,11 +10,7 @@ from utils.exceptions import S3UploadError
 logger = logging.getLogger(__name__)
 
 
-def connect_to_s3(
-    aws_access_key_id: str = None,
-    aws_secret_access_key: str = None,
-    region: str = 'us-east-1'
-):
+def connect_to_s3(aws_access_key_id: str = None, aws_secret_access_key: str = None, region: str = "us-east-1"):
     """
     Create S3 client connection.
 
@@ -34,14 +30,14 @@ def connect_to_s3(
     try:
         if aws_access_key_id and aws_secret_access_key:
             s3_client = boto3.client(
-                's3',
+                "s3",
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key,
-                region_name=region
+                region_name=region,
             )
         else:
             # Use default credential chain (IAM roles, env vars, etc.)
-            s3_client = boto3.client('s3', region_name=region)
+            s3_client = boto3.client("s3", region_name=region)
 
         logger.info(f"Connected to S3 in region {region}")
         return s3_client
@@ -67,15 +63,14 @@ def create_bucket_if_not_exists(s3_client, bucket_name: str, region: str) -> boo
         logger.info(f"Bucket '{bucket_name}' already exists")
         return True
     except ClientError as e:
-        error_code = e.response['Error']['Code']
-        if error_code == '404':
+        error_code = e.response["Error"]["Code"]
+        if error_code == "404":
             try:
-                if region == 'us-east-1':
+                if region == "us-east-1":
                     s3_client.create_bucket(Bucket=bucket_name)
                 else:
                     s3_client.create_bucket(
-                        Bucket=bucket_name,
-                        CreateBucketConfiguration={'LocationConstraint': region}
+                        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": region}
                     )
                 logger.info(f"Bucket '{bucket_name}' created successfully")
                 return True
@@ -88,11 +83,7 @@ def create_bucket_if_not_exists(s3_client, bucket_name: str, region: str) -> boo
 
 
 def upload_file_to_s3(
-    s3_client,
-    local_file_path: str,
-    bucket_name: str,
-    s3_key: str = None,
-    prefix: str = 'raw/elasticsearch'
+    s3_client, local_file_path: str, bucket_name: str, s3_key: str = None, prefix: str = "raw/elasticsearch"
 ) -> str:
     """
     Upload a file to S3.
@@ -113,7 +104,7 @@ def upload_file_to_s3(
     try:
         if s3_key is None:
             # Generate key with date partitioning
-            date_partition = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+            date_partition = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             file_name = Path(local_file_path).name
             s3_key = f"{prefix}/{date_partition}/{file_name}"
 
@@ -127,7 +118,7 @@ def upload_file_to_s3(
         raise S3UploadError(f"Failed to upload {local_file_path} to S3: {e}") from e
 
 
-def list_s3_objects(s3_client, bucket_name: str, prefix: str = '') -> list:
+def list_s3_objects(s3_client, bucket_name: str, prefix: str = "") -> list:
     """
     List all objects in S3 bucket using pagination.
 
@@ -143,11 +134,11 @@ def list_s3_objects(s3_client, bucket_name: str, prefix: str = '') -> list:
     """
     try:
         objects = []
-        paginator = s3_client.get_paginator('list_objects_v2')
+        paginator = s3_client.get_paginator("list_objects_v2")
 
         for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
-            for obj in page.get('Contents', []):
-                objects.append(obj['Key'])
+            for obj in page.get("Contents", []):
+                objects.append(obj["Key"])
 
         logger.info(f"Found {len(objects)} objects in s3://{bucket_name}/{prefix}")
         return objects
