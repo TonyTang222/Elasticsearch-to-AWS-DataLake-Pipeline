@@ -5,6 +5,16 @@ ETL pipeline that extracts data from Elasticsearch and loads it into AWS Data La
 ## Architecture
 
 ```
+                                ┌─────────────┐
+                                │  FastAPI    │
+                                │   :8000     │
+                                └──────┬──────┘
+                                       │
+                    ┌──────────────────┼──────────────────┐
+                    │                  │                  │
+              POST /run         GET /runs/{id}     GET /data/files
+                    │                  │                  │
+                    ▼                  ▼                  ▼
 ┌─────────────────┐     ┌─────────────┐     ┌─────────────┐
 │  Elasticsearch  │────▶│   Airflow   │────▶│     S3      │
 │    (Docker)     │     │    ETL      │     │  (Raw Data) │
@@ -26,13 +36,14 @@ ETL pipeline that extracts data from Elasticsearch and loads it into AWS Data La
 
 ## Key Features
 
+- **REST API** (FastAPI) for triggering pipelines, querying status, and listing S3 data
 - **Scroll API** for efficient large-dataset extraction from Elasticsearch
 - **Parquet output** with Snappy compression for optimized data lake storage
 - **Data quality validation** (schema, row count, duplicate, null checks)
 - **Custom exception hierarchy** for granular error handling and resource cleanup
 - **IAM role support** with environment variable fallback for AWS credentials
 - **Idempotent DAG** using Airflow execution date for deterministic file naming
-- **Comprehensive test suite** with 60+ unit and integration tests
+- **Comprehensive test suite** with 86 unit and integration tests
 
 ## Project Structure
 
@@ -40,9 +51,18 @@ ETL pipeline that extracts data from Elasticsearch and loads it into AWS Data La
 Elasticsearch-to-AWS-DataLake-Pipeline/
 ├── README.md
 ├── requirements.txt
-├── docker-compose.yml           # Elasticsearch + Kibana + Airflow
+├── docker-compose.yml           # Elasticsearch + Kibana + Airflow + FastAPI
 ├── config/
 │   └── config.conf.example      # Configuration template
+├── api/
+│   ├── main.py                  # FastAPI app, lifespan, exception handlers
+│   ├── models.py                # Pydantic request/response models
+│   ├── run_store.py             # Thread-safe in-memory run tracking
+│   ├── dependencies.py          # FastAPI dependency injection
+│   └── routes/
+│       ├── health.py            # GET /health
+│       ├── pipelines.py         # Pipeline trigger and status endpoints
+│       └── data.py              # S3 data query endpoints
 ├── dags/
 │   └── elasticsearch_dag.py     # Airflow DAG with failure callbacks
 ├── etls/
@@ -57,6 +77,7 @@ Elasticsearch-to-AWS-DataLake-Pipeline/
 │   └── validators.py            # Data quality validation
 └── tests/
     ├── conftest.py              # Shared pytest fixtures
+    ├── test_api.py              # REST API tests (28 tests)
     ├── test_elasticsearch_etl.py
     ├── test_aws_etl.py
     ├── test_validators.py
@@ -123,6 +144,7 @@ docker compose ps
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
+| FastAPI (Swagger) | http://localhost:8000/docs | - |
 | Kibana | http://localhost:5601 | - |
 | Airflow | http://localhost:8080 | airflow / airflow |
 | Elasticsearch | http://localhost:9200 | - |
@@ -141,11 +163,40 @@ curl -X POST "localhost:9200/logs/_doc" -H 'Content-Type: application/json' -d'
 }'
 ```
 
-### 7. Trigger the Airflow DAG
+### 7. Start the API server (local development)
+
+```bash
+ES_HOST=localhost uvicorn api.main:app --reload
+```
+
+### 8. Trigger the pipeline
+
+**Via API:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/pipelines/run \
+  -H "Content-Type: application/json" \
+  -d '{"index_name": "logs", "output_format": "parquet"}'
+```
+
+**Via Airflow UI:**
 
 1. Go to http://localhost:8080
 2. Enable the `elasticsearch_etl_dag`
 3. Trigger the DAG manually
+
+## REST API Endpoints
+
+| Method | Path | Description | Status |
+|--------|------|-------------|--------|
+| GET | `/health` | Health check + ES connectivity | 200 |
+| POST | `/api/v1/pipelines/run` | Trigger a pipeline run (async) | 202 |
+| GET | `/api/v1/pipelines/runs` | List all pipeline runs | 200 |
+| GET | `/api/v1/pipelines/runs/{run_id}` | Get run status and details | 200 |
+| GET | `/api/v1/data/files` | List files in S3 bucket | 200 |
+| GET | `/api/v1/data/preview` | Preview Parquet file contents as JSON | 200 |
+
+Interactive API documentation available at `http://localhost:8000/docs` (Swagger UI).
 
 ## S3 Output Structure
 

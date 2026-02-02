@@ -1,0 +1,20 @@
+[elasticsearch]
+elasticsearch_host = elasticsearch
+elasticsearch_port = 9200
+elasticsearch_index = logs
+elasticsearch_username =
+elasticsearch_password =
+
+[aws]
+aws_access_key_id = YOUR_AWS_ACCESS_KEY_ID
+aws_secret_access_key = YOUR_AWS_SECRET_ACCESS_KEY
+aws_region = us-east-1
+aws_bucket_name = your-elasticsearch-datalake-bucket
+
+[api]
+api_host = 0.0.0.0
+api_port = 8000
+
+[file_paths]
+input_path = /opt/airflow/data/input
+output_path = /opt/airflow/data/output
