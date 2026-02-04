@@ -19,6 +19,7 @@ from api.models import (
 from api.run_store import RunStore
 from pipelines.elasticsearch_pipeline import elasticsearch_pipeline
 from pipelines.aws_s3_pipeline import upload_s3_pipeline
+from pipelines.iceberg_pipeline import iceberg_pipeline
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -45,11 +46,20 @@ def _execute_pipeline(store: RunStore, run_id: str, config: PipelineRunRequest):
                 s3_prefix=config.s3_prefix,
             )
 
+        iceberg_snapshot_id = None
+        if config.write_to_iceberg:
+            import pandas as pd
+
+            df = pd.read_parquet(output_file)
+            iceberg_result = iceberg_pipeline(df=df)
+            iceberg_snapshot_id = iceberg_result.get("snapshot_id")
+
         store.update(
             run_id,
             status="completed",
             output_file=output_file,
             s3_uri=s3_uri,
+            iceberg_snapshot_id=iceberg_snapshot_id,
             completed_at=datetime.now(timezone.utc),
         )
         logger.info(f"Pipeline run {run_id} completed successfully")
@@ -136,6 +146,7 @@ def get_pipeline_run(
         config=run.config,
         output_file=run.output_file,
         s3_uri=run.s3_uri,
+        iceberg_snapshot_id=run.iceberg_snapshot_id,
         error=run.error,
         duration_seconds=duration,
     )

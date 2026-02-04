@@ -57,3 +57,10 @@ API_PORT = get_config("api", "api_port", "API_PORT", "8000")
 # File Paths
 INPUT_PATH = get_config("file_paths", "input_path", "INPUT_PATH", "/opt/airflow/data/input")
 OUTPUT_PATH = get_config("file_paths", "output_path", "OUTPUT_PATH", "/opt/airflow/data/output")
+
+# Iceberg / Lakehouse
+ICEBERG_CATALOG_NAME = get_config("iceberg", "catalog_name", "ICEBERG_CATALOG_NAME", "glue")
+ICEBERG_CATALOG_TYPE = get_config("iceberg", "catalog_type", "ICEBERG_CATALOG_TYPE", "glue")
+ICEBERG_NAMESPACE = get_config("iceberg", "namespace", "ICEBERG_NAMESPACE", "datalake")
+ICEBERG_TABLE_NAME = get_config("iceberg", "table_name", "ICEBERG_TABLE_NAME", "elasticsearch_logs")
+ICEBERG_WAREHOUSE_PATH = get_config("iceberg", "warehouse_path", "ICEBERG_WAREHOUSE_PATH", "s3://bucket/silver")

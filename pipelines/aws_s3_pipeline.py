@@ -8,7 +8,7 @@ from utils.constants import AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
 logger = logging.getLogger(__name__)
 
 
-def upload_s3_pipeline(file_path: str = None, s3_prefix: str = "raw/elasticsearch") -> str:
+def upload_s3_pipeline(file_path: str = None, s3_prefix: str = "bronze/elasticsearch") -> str:
     """
     Upload extracted data to S3.
 

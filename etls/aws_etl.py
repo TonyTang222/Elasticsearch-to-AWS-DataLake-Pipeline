@@ -83,7 +83,7 @@ def create_bucket_if_not_exists(s3_client, bucket_name: str, region: str) -> boo
 
 
 def upload_file_to_s3(
-    s3_client, local_file_path: str, bucket_name: str, s3_key: str = None, prefix: str = "raw/elasticsearch"
+    s3_client, local_file_path: str, bucket_name: str, s3_key: str = None, prefix: str = "bronze/elasticsearch"
 ) -> str:
     """
     Upload a file to S3.

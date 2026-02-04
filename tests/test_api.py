@@ -224,8 +224,8 @@ class TestDataEndpoints:
         ):
             mock_connect.return_value = MagicMock()
             mock_list.return_value = [
-                "raw/elasticsearch/2025-01-28/file1.parquet",
-                "raw/elasticsearch/2025-01-29/file2.parquet",
+                "bronze/elasticsearch/2025-01-28/file1.parquet",
+                "bronze/elasticsearch/2025-01-29/file2.parquet",
             ]
 
             response = test_client.get("/api/v1/data/files")
@@ -270,7 +270,8 @@ class TestParquetPreview:
             patch("api.routes.data.connect_to_s3", return_value=mock_s3),
             patch("api.routes.data.pd.read_parquet", return_value=mock_df),
         ):
-            response = test_client.get("/api/v1/data/preview?s3_key=raw/elasticsearch/XXXX-XX-XX/test.parquet&limit=2")
+            url = "/api/v1/data/preview?s3_key=bronze/elasticsearch/XXXX-XX-XX/test.parquet&limit=2"
+            response = test_client.get(url)
         assert response.status_code == 200
         data = response.json()
         assert data["total_rows"] == 3
@@ -339,3 +340,112 @@ class TestRunStore:
         completed = run_store.list_runs(status="completed")
         assert len(completed) == 1
         assert completed[0].run_id == "run-1"
+
+
+class TestIcebergPreview:
+    """Tests for GET /api/v1/data/iceberg/preview."""
+
+    def test_preview_iceberg_success(self, test_client):
+        mock_table = MagicMock()
+        mock_df = pd.DataFrame({"id": ["1", "2", "3"], "message": ["a", "b", "c"]})
+
+        with (
+            patch("api.routes.data._load_iceberg_table", return_value=mock_table),
+            patch("api.routes.data.scan_table", return_value=mock_df),
+        ):
+            response = test_client.get("/api/v1/data/iceberg/preview?limit=50")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["columns"] == ["id", "message"]
+        assert data["total_rows"] == 3
+        assert data["limit"] == 50
+        assert len(data["rows"]) == 3
+        assert data["snapshot_id"] is None
+
+    def test_preview_iceberg_with_snapshot_id(self, test_client):
+        mock_table = MagicMock()
+        mock_df = pd.DataFrame({"id": ["1"], "message": ["old"]})
+
+        with (
+            patch("api.routes.data._load_iceberg_table", return_value=mock_table),
+            patch("api.routes.data.scan_table", return_value=mock_df) as mock_scan,
+        ):
+            response = test_client.get("/api/v1/data/iceberg/preview?snapshot_id=1234567890")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["snapshot_id"] == "1234567890"
+        mock_scan.assert_called_once_with(mock_table, limit=50, snapshot_id=1234567890)
+
+    def test_preview_iceberg_table_not_found(self, test_client):
+        from pyiceberg.exceptions import NoSuchTableError
+
+        with patch("api.routes.data._load_iceberg_table") as mock_load:
+            mock_load.side_effect = NoSuchTableError("datalake.elasticsearch_logs")
+
+            response = test_client.get("/api/v1/data/iceberg/preview")
+
+        assert response.status_code == 404
+
+    def test_preview_iceberg_catalog_unavailable(self, test_client):
+        with patch("api.routes.data._load_iceberg_table") as mock_load:
+            mock_load.side_effect = Exception("Catalog unreachable")
+
+            response = test_client.get("/api/v1/data/iceberg/preview")
+
+        assert response.status_code == 503
+
+
+class TestIcebergSnapshots:
+    """Tests for GET /api/v1/data/iceberg/snapshots."""
+
+    def test_get_snapshots_success(self, test_client):
+        mock_table = MagicMock()
+        mock_history = [
+            {
+                "snapshot_id": "1234567890",
+                "timestamp_ms": 1706400000000,
+                "summary": {"added-data-files": "1", "added-records": "100"},
+            },
+            {
+                "snapshot_id": "9876543210",
+                "timestamp_ms": 1706486400000,
+                "summary": {"added-data-files": "2", "added-records": "200"},
+            },
+        ]
+
+        with (
+            patch("api.routes.data._load_iceberg_table", return_value=mock_table),
+            patch("api.routes.data.get_snapshot_history", return_value=mock_history),
+        ):
+            response = test_client.get("/api/v1/data/iceberg/snapshots")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 2
+        assert len(data["snapshots"]) == 2
+        assert data["snapshots"][0]["snapshot_id"] == "1234567890"
+        assert "table_name" in data
+
+    def test_get_snapshots_empty(self, test_client):
+        mock_table = MagicMock()
+
+        with (
+            patch("api.routes.data._load_iceberg_table", return_value=mock_table),
+            patch("api.routes.data.get_snapshot_history", return_value=[]),
+        ):
+            response = test_client.get("/api/v1/data/iceberg/snapshots")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 0
+        assert data["snapshots"] == []
+
+    def test_get_snapshots_catalog_unavailable(self, test_client):
+        with patch("api.routes.data._load_iceberg_table") as mock_load:
+            mock_load.side_effect = Exception("Catalog unreachable")
+
+            response = test_client.get("/api/v1/data/iceberg/snapshots")
+
+        assert response.status_code == 503

@@ -99,3 +99,33 @@ def run_store():
     from api.run_store import RunStore
 
     return RunStore()
+
+
+@pytest.fixture
+def mock_iceberg_catalog():
+    """Mock Iceberg catalog for testing."""
+    catalog = MagicMock()
+    catalog.list_namespaces.return_value = []
+    return catalog
+
+
+@pytest.fixture
+def mock_iceberg_table():
+    """Mock Iceberg table with snapshot support."""
+    table = MagicMock()
+    table.name.return_value = "datalake.elasticsearch_logs"
+
+    # Mock current snapshot
+    mock_snapshot = MagicMock()
+    mock_snapshot.snapshot_id = 1234567890
+    mock_snapshot.timestamp_ms = 1706400000000
+    mock_snapshot.summary = {"added-data-files": "1", "added-records": "100"}
+    table.current_snapshot.return_value = mock_snapshot
+
+    # Mock metadata
+    table.metadata.snapshots = [mock_snapshot]
+    table.metadata.location = "s3://bucket/silver/datalake/elasticsearch_logs"
+    table.schema.return_value = MagicMock()
+    table.spec.return_value = MagicMock()
+
+    return table

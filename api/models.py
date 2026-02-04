@@ -15,7 +15,8 @@ class PipelineRunRequest(BaseModel):
     upload_to_s3: bool = True
     time_range_hours: int = 24
     use_time_filter: bool = True
-    s3_prefix: str = "raw/elasticsearch"
+    s3_prefix: str = "bronze/elasticsearch"
+    write_to_iceberg: bool = False
 
     @field_validator("output_format")
     @classmethod
@@ -69,6 +70,7 @@ class PipelineRunDetail(BaseModel):
     config: dict
     output_file: str | None = None
     s3_uri: str | None = None
+    iceberg_snapshot_id: str | None = None
     error: str | None = None
     duration_seconds: float | None = None
 
@@ -85,6 +87,15 @@ class ParquetPreview(BaseModel):
     columns: list[str]
     total_rows: int
     limit: int
+    rows: list[dict]
+
+
+class IcebergPreview(BaseModel):
+    table_name: str
+    columns: list[str]
+    total_rows: int
+    limit: int
+    snapshot_id: str | None = None
     rows: list[dict]
 
 

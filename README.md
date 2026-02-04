@@ -1,6 +1,6 @@
 # Elasticsearch-to-AWS Data Lake Pipeline
 
-ETL pipeline that extracts data from Elasticsearch and loads it into AWS Data Lake (S3, Glue, Athena, Redshift).
+ETL pipeline that extracts data from Elasticsearch and loads it into an AWS Lakehouse architecture with Apache Iceberg tables on S3.
 
 ## Architecture
 
@@ -15,17 +15,19 @@ ETL pipeline that extracts data from Elasticsearch and loads it into AWS Data La
               POST /run         GET /runs/{id}     GET /data/files
                     │                  │                  │
                     ▼                  ▼                  ▼
-┌─────────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Elasticsearch  │────▶│   Airflow   │────▶│     S3      │
-│    (Docker)     │     │    ETL      │     │  (Raw Data) │
-└─────────────────┘     └─────────────┘     └──────┬──────┘
-                                                   │
-                                                   ▼
-                                           ┌─────────────┐
-                                           │    Glue     │
-                                           │   Crawler   │
-                                           └──────┬──────┘
-                                                  │
+┌─────────────────┐     ┌─────────────┐     ┌──────────────────┐
+│  Elasticsearch  │────▶│   Airflow   │────▶│  S3 Bronze Layer │
+│    (Docker)     │     │    ETL      │     │  (Raw Parquet)   │
+└─────────────────┘     └─────────────┘     └────────┬─────────┘
+                                                     │
+                                                     ▼
+                                            ┌──────────────────┐
+                                            │ S3 Silver Layer  │
+                                            │ (Iceberg Tables) │
+                                            └────────┬─────────┘
+                                                     │
+                                              Glue Catalog
+                                                     │
                               ┌───────────────────┴───────────────────┐
                               ▼                                       ▼
                        ┌─────────────┐                         ┌─────────────┐
@@ -36,6 +38,8 @@ ETL pipeline that extracts data from Elasticsearch and loads it into AWS Data La
 
 ## Key Features
 
+- **Lakehouse architecture** with Bronze (raw Parquet) and Silver (Iceberg) layers on S3
+- **Apache Iceberg tables** with schema evolution, snapshot history, and partition management via PyIceberg
 - **REST API** (FastAPI) for triggering pipelines, querying status, and listing S3 data
 - **Scroll API** for efficient large-dataset extraction from Elasticsearch
 - **Parquet output** with Snappy compression for optimized data lake storage
@@ -43,7 +47,7 @@ ETL pipeline that extracts data from Elasticsearch and loads it into AWS Data La
 - **Custom exception hierarchy** for granular error handling and resource cleanup
 - **IAM role support** with environment variable fallback for AWS credentials
 - **Idempotent DAG** using Airflow execution date for deterministic file naming
-- **Comprehensive test suite** with 86 unit and integration tests
+- **Comprehensive test suite** with 120+ unit and integration tests
 
 ## Project Structure
 
@@ -67,19 +71,22 @@ Elasticsearch-to-AWS-DataLake-Pipeline/
 │   └── elasticsearch_dag.py     # Airflow DAG with failure callbacks
 ├── etls/
 │   ├── elasticsearch_etl.py     # ES extraction, transform, CSV/Parquet
-│   └── aws_etl.py               # S3 upload with pagination and IAM support
+│   ├── aws_etl.py               # S3 upload with pagination and IAM support
+│   └── iceberg_etl.py           # Iceberg table operations (PyIceberg)
 ├── pipelines/
 │   ├── elasticsearch_pipeline.py  # ES ETL orchestration with validation
-│   └── aws_s3_pipeline.py        # S3 upload orchestration
+│   ├── aws_s3_pipeline.py        # S3 upload orchestration (Bronze layer)
+│   └── iceberg_pipeline.py       # Iceberg write orchestration (Silver layer)
 ├── utils/
 │   ├── constants.py             # Config loading (env var + file fallback)
 │   ├── exceptions.py            # Custom exception classes
 │   └── validators.py            # Data quality validation
 └── tests/
     ├── conftest.py              # Shared pytest fixtures
-    ├── test_api.py              # REST API tests (28 tests)
+    ├── test_api.py              # REST API tests
     ├── test_elasticsearch_etl.py
     ├── test_aws_etl.py
+    ├── test_iceberg_etl.py      # Iceberg ETL and pipeline tests
     ├── test_validators.py
     └── test_pipelines.py        # Pipeline integration tests
 ```
@@ -128,6 +135,12 @@ export AWS_ACCESS_KEY_ID=your-access-key
 export AWS_SECRET_ACCESS_KEY=your-secret-key
 export AWS_REGION=us-east-1
 export AWS_BUCKET_NAME=your-elasticsearch-datalake-bucket
+
+# Iceberg / Lakehouse (optional)
+export ICEBERG_CATALOG_TYPE=glue        # "glue" for AWS, "sqlite" for local dev
+export ICEBERG_NAMESPACE=datalake
+export ICEBERG_TABLE_NAME=elasticsearch_logs
+export ICEBERG_WAREHOUSE_PATH=s3://your-bucket/silver
 ```
 
 ### 4. Start services
@@ -195,19 +208,39 @@ curl -X POST http://localhost:8000/api/v1/pipelines/run \
 | GET | `/api/v1/pipelines/runs/{run_id}` | Get run status and details | 200 |
 | GET | `/api/v1/data/files` | List files in S3 bucket | 200 |
 | GET | `/api/v1/data/preview` | Preview Parquet file contents as JSON | 200 |
+| GET | `/api/v1/data/iceberg/preview` | Query Iceberg Silver layer (time-travel) | 200 |
+| GET | `/api/v1/data/iceberg/snapshots` | List Iceberg snapshot history | 200 |
 
 Interactive API documentation available at `http://localhost:8000/docs` (Swagger UI).
 
-## S3 Output Structure
+## Lakehouse Architecture
 
-Data is stored in Parquet format with date-based partitioning:
+The pipeline implements a two-layer lakehouse architecture on S3:
+
+**Bronze Layer** (Raw Parquet) - Immutable landing zone for extracted data:
+- Date-partitioned Parquet files written directly to S3
+- Preserves raw data as-is from Elasticsearch
+
+**Silver Layer** (Iceberg Tables) - Curated, schema-managed data:
+- Apache Iceberg table format managed by PyIceberg
+- AWS Glue Catalog for metadata (SQLite supported for local dev)
+- Schema evolution without data rewrites
+- Snapshot history for time-travel queries
+- Partition evolution (default: `day(extracted_at)`)
+
+## S3 Output Structure
 
 ```
 s3://your-bucket/
-└── raw/
-    └── elasticsearch/
-        └── 2025-01-01/
-            └── elasticsearch_20250101.parquet
+├── bronze/                          # Bronze Layer (raw Parquet)
+│   └── elasticsearch/
+│       └── 2025-01-01/
+│           └── elasticsearch_20250101.parquet
+└── silver/                          # Silver Layer (Iceberg tables)
+    └── datalake/
+        └── elasticsearch_logs/
+            ├── metadata/            # Iceberg metadata (snapshots, schema)
+            └── data/                # Iceberg-managed Parquet files
 ```
 
 ## Running Tests

@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pipelines.elasticsearch_pipeline import elasticsearch_pipeline
 from pipelines.aws_s3_pipeline import upload_s3_pipeline
+from pipelines.iceberg_pipeline import iceberg_pipeline
 
 
 def on_failure_callback(context):
@@ -43,19 +44,21 @@ default_args = {
 dag = DAG(
     dag_id="elasticsearch_etl_dag",
     default_args=default_args,
-    description="ETL pipeline from Elasticsearch to S3 Data Lake",
-    schedule_interval="@daily",
+    description="Lakehouse pipeline from Elasticsearch to S3 with Iceberg",
+    schedule="@daily",
     catchup=False,
     max_active_runs=1,
-    tags=["elasticsearch", "etl", "s3", "data-lake"],
+    tags=["elasticsearch", "etl", "s3", "data-lake", "iceberg", "lakehouse"],
     doc_md="""
-    ## Elasticsearch to S3 Data Lake Pipeline
+    ## Elasticsearch to S3 Lakehouse Pipeline
 
-    Extracts data from Elasticsearch, validates quality, and loads to S3 in Parquet format.
+    Extracts data from Elasticsearch, validates quality, loads to S3 Bronze layer,
+    and writes to Iceberg Silver layer for lakehouse analytics.
 
     **Tasks:**
     1. `extract_elasticsearch` - Extract documents from ES with time-range filtering
-    2. `upload_to_s3` - Upload output file to S3 with date partitioning
+    2. `upload_to_s3` - Upload Parquet to S3 Bronze layer with date partitioning
+    3. `write_to_iceberg` - Write data to Iceberg table in Silver layer
     """,
 )
 
@@ -78,19 +81,38 @@ def extract_elasticsearch_data(**kwargs):
 
 
 def upload_to_s3_task(**kwargs):
-    """Upload extracted data to S3."""
+    """Upload extracted data to S3 Bronze layer."""
     ti = kwargs["ti"]
     file_path = ti.xcom_pull(task_ids="extract_elasticsearch")
 
     if not file_path:
         raise ValueError("No file path received from extraction task")
 
-    logger.info(f"Uploading {file_path} to S3")
+    logger.info(f"Uploading {file_path} to S3 Bronze layer")
 
     s3_uri = upload_s3_pipeline(file_path=file_path)
 
     logger.info(f"Upload complete: {s3_uri}")
     return s3_uri
+
+
+def write_to_iceberg_task(**kwargs):
+    """Write extracted data to Iceberg table in Silver layer."""
+    import pandas as pd
+
+    ti = kwargs["ti"]
+    file_path = ti.xcom_pull(task_ids="extract_elasticsearch")
+
+    if not file_path:
+        raise ValueError("No file path received from extraction task")
+
+    logger.info(f"Writing {file_path} to Iceberg Silver layer")
+
+    df = pd.read_parquet(file_path)
+    result = iceberg_pipeline(df=df)
+
+    logger.info(f"Iceberg write complete: snapshot={result['snapshot_id']}, records={result['records_added']}")
+    return result
 
 
 # Task 1: Extract from Elasticsearch
@@ -100,12 +122,19 @@ extract_elasticsearch = PythonOperator(
     dag=dag,
 )
 
-# Task 2: Upload to S3
+# Task 2: Upload to S3 Bronze layer
 upload_s3 = PythonOperator(
     task_id="upload_to_s3",
     python_callable=upload_to_s3_task,
     dag=dag,
 )
 
+# Task 3: Write to Iceberg Silver layer
+write_to_iceberg = PythonOperator(
+    task_id="write_to_iceberg",
+    python_callable=write_to_iceberg_task,
+    dag=dag,
+)
+
 # Define task dependencies
-extract_elasticsearch >> upload_s3
+extract_elasticsearch >> upload_s3 >> write_to_iceberg
