@@ -18,3 +18,10 @@ api_port = 8000
 [file_paths]
 input_path = /opt/airflow/data/input
 output_path = /opt/airflow/data/output
+
+[iceberg]
+catalog_name = glue
+catalog_type = glue
+namespace = datalake
+table_name = elasticsearch_logs
+warehouse_path = s3://your-elasticsearch-datalake-bucket/silver

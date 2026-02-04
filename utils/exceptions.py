@@ -35,3 +35,9 @@ class ConfigurationError(PipelineError):
     """Raised when configuration is invalid or missing."""
 
     pass
+
+
+class IcebergError(PipelineError):
+    """Raised when Iceberg table operations fail."""
+
+    pass

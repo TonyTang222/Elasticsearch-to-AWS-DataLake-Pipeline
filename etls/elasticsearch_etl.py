@@ -160,9 +160,9 @@ def transform_data(docs_df: pd.DataFrame) -> pd.DataFrame:
 
     # Handle nested JSON fields - flatten if needed
     for col in docs_df.columns:
-        if docs_df[col].apply(lambda x: isinstance(x, dict)).any():
-            # Convert dict columns to JSON strings for CSV compatibility
-            docs_df[col] = docs_df[col].apply(lambda x: str(x) if isinstance(x, dict) else x)
+        if docs_df[col].apply(lambda x: isinstance(x, (dict, list))).any():
+            # Convert dict/list columns to JSON strings for flat format compatibility
+            docs_df[col] = docs_df[col].apply(lambda x: str(x) if isinstance(x, (dict, list)) else x)
 
     logger.info(f"Transformed DataFrame with {len(docs_df)} rows and {len(docs_df.columns)} columns")
     return docs_df

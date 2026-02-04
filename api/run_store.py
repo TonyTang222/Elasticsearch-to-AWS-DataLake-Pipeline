@@ -16,6 +16,7 @@ class PipelineRun:
     completed_at: datetime | None = None
     output_file: str | None = None
     s3_uri: str | None = None
+    iceberg_snapshot_id: str | None = None
     error: str | None = None
 
 

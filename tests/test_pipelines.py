@@ -113,7 +113,7 @@ class TestS3UploadPipeline:
         """Test uploading a specific file to S3."""
         mock_connect.return_value = MagicMock()
         mock_bucket.return_value = True
-        mock_upload.return_value = "s3://bucket/raw/elasticsearch/2025-01-28/test.csv"
+        mock_upload.return_value = "s3://bucket/bronze/elasticsearch/2025-01-28/test.csv"
 
         test_file = tmp_path / "test.csv"
         test_file.write_text("id,message\n1,test")
