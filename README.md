@@ -22,18 +22,17 @@ ETL pipeline that extracts data from Elasticsearch and loads it into an AWS Lake
                                                      │
                                                      ▼
                                             ┌──────────────────┐
-                                            │ S3 Silver Layer  │
+                                            │  S3 Silver Layer │
                                             │ (Iceberg Tables) │
                                             └────────┬─────────┘
                                                      │
                                               Glue Catalog
                                                      │
-                              ┌───────────────────┴───────────────────┐
-                              ▼                                       ▼
-                       ┌─────────────┐                         ┌─────────────┐
-                       │   Athena    │                         │  Redshift   │
-                       │  (Ad-hoc)   │                         │    (DW)     │
-                       └─────────────┘                         └─────────────┘
+                                                     ▼
+                                              ┌─────────────┐
+                                              │   Athena    │
+                                              │  (Query)    │
+                                              └─────────────┘
 ```
 
 ## Key Features
@@ -70,7 +69,7 @@ Elasticsearch-to-AWS-DataLake-Pipeline/
 ├── dags/
 │   └── elasticsearch_dag.py     # Airflow DAG with failure callbacks
 ├── etls/
-│   ├── elasticsearch_etl.py     # ES extraction, transform, CSV/Parquet
+│   ├── elasticsearch_etl.py     # ES extraction, transform, Parquet output
 │   ├── aws_etl.py               # S3 upload with pagination and IAM support
 │   └── iceberg_etl.py           # Iceberg table operations (PyIceberg)
 ├── pipelines/
@@ -94,7 +93,7 @@ Elasticsearch-to-AWS-DataLake-Pipeline/
 ## Prerequisites
 
 - Docker & Docker Compose
-- AWS Account with S3, Glue, Athena, Redshift access
+- AWS Account with S3, Glue, Athena access
 - Python 3.10+
 
 ## Quick Start

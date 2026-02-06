@@ -168,22 +168,6 @@ def transform_data(docs_df: pd.DataFrame) -> pd.DataFrame:
     return docs_df
 
 
-def load_data_to_csv(data: pd.DataFrame, path: str) -> str:
-    """
-    Save DataFrame to CSV file.
-
-    Args:
-        data: DataFrame to save
-        path: Output file path
-
-    Returns:
-        Path to saved file
-    """
-    data.to_csv(path, index=False)
-    logger.info(f"Data saved to {path}")
-    return path
-
-
 def load_data_to_parquet(data: pd.DataFrame, path: str, compression: str = "snappy") -> str:
     """
     Save DataFrame to Parquet file with compression.

@@ -11,19 +11,11 @@ class PipelineRunRequest(BaseModel):
     """Request body for triggering a pipeline run."""
 
     index_name: str | None = None
-    output_format: str = "parquet"
     upload_to_s3: bool = True
     time_range_hours: int = 24
     use_time_filter: bool = True
     s3_prefix: str = "bronze/elasticsearch"
     write_to_iceberg: bool = False
-
-    @field_validator("output_format")
-    @classmethod
-    def validate_output_format(cls, v):
-        if v not in ("csv", "parquet"):
-            raise ValueError("output_format must be 'csv' or 'parquet'")
-        return v
 
     @field_validator("time_range_hours")
     @classmethod
