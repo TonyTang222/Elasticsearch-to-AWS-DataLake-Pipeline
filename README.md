@@ -22,18 +22,17 @@ ETL pipeline that extracts data from Elasticsearch and loads it into an AWS Lake
                                                      │
                                                      ▼
                                             ┌──────────────────┐
-                                            │ S3 Silver Layer  │
+                                            │  S3 Silver Layer │
                                             │ (Iceberg Tables) │
                                             └────────┬─────────┘
                                                      │
                                               Glue Catalog
                                                      │
-                              ┌───────────────────┴───────────────────┐
-                              ▼                                       ▼
-                       ┌─────────────┐                         ┌─────────────┐
-                       │   Athena    │                         │  Redshift   │
-                       │  (Ad-hoc)   │                         │    (DW)     │
-                       └─────────────┘                         └─────────────┘
+                                                     ▼
+                                              ┌─────────────┐
+                                              │   Athena    │
+                                              │  (Query)    │
+                                              └─────────────┘
 ```
 
 ## Key Features
@@ -94,7 +93,7 @@ Elasticsearch-to-AWS-DataLake-Pipeline/
 ## Prerequisites
 
 - Docker & Docker Compose
-- AWS Account with S3, Glue, Athena, Redshift access
+- AWS Account with S3, Glue, Athena access
 - Python 3.10+
 
 ## Quick Start
