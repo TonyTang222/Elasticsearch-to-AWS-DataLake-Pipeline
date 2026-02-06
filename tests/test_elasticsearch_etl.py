@@ -13,7 +13,6 @@ from etls.elasticsearch_etl import (
     connect_elasticsearch,
     extract_documents,
     transform_data,
-    load_data_to_csv,
     load_data_to_parquet,
 )
 from utils.exceptions import ElasticsearchConnectionError, ElasticsearchExtractionError
@@ -151,22 +150,6 @@ class TestTransformData:
         assert "message" in result.columns
         assert "level" in result.columns
         assert list(result["message"]) == ["msg1", "msg2", "msg3"]
-
-
-class TestLoadDataToCsv:
-    """Tests for load_data_to_csv function."""
-
-    def test_load_data_to_csv_success(self, sample_dataframe, tmp_path):
-        output_path = str(tmp_path / "test_output.csv")
-
-        result = load_data_to_csv(sample_dataframe, output_path)
-
-        assert result == output_path
-        assert os.path.exists(output_path)
-
-        loaded_df = pd.read_csv(output_path)
-        assert len(loaded_df) == 3
-        assert "id" in loaded_df.columns
 
 
 class TestLoadDataToParquet:

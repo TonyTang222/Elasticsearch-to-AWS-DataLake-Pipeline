@@ -9,7 +9,6 @@ from etls.elasticsearch_etl import (
     extract_documents,
     extract_documents_by_time_range,
     transform_data,
-    load_data_to_csv,
     load_data_to_parquet,
 )
 from utils.constants import ES_HOST, ES_PORT, ES_INDEX, ES_USERNAME, ES_PASSWORD, OUTPUT_PATH
@@ -24,7 +23,6 @@ def elasticsearch_pipeline(
     query: dict = None,
     time_range_hours: int = 24,
     use_time_filter: bool = True,
-    output_format: str = "parquet",
     validate: bool = True,
 ) -> str:
     """
@@ -36,11 +34,10 @@ def elasticsearch_pipeline(
         query: Custom Elasticsearch query (optional)
         time_range_hours: Hours to look back for time-based queries
         use_time_filter: Whether to filter by time range
-        output_format: Output format - 'csv' or 'parquet' (default: parquet)
         validate: Whether to run data quality validation
 
     Returns:
-        Path to the output file
+        Path to the output file (Parquet format)
 
     Raises:
         ValueError: If no documents are extracted
@@ -94,13 +91,9 @@ def elasticsearch_pipeline(
     # Ensure output directory exists
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
-    # Save output
-    if output_format == "parquet":
-        output_file = f"{OUTPUT_PATH}/{file_name}.parquet"
-        load_data_to_parquet(docs_df, output_file)
-    else:
-        output_file = f"{OUTPUT_PATH}/{file_name}.csv"
-        load_data_to_csv(docs_df, output_file)
+    # Save output as Parquet
+    output_file = f"{OUTPUT_PATH}/{file_name}.parquet"
+    load_data_to_parquet(docs_df, output_file)
 
     logger.info(f"Pipeline completed. Output: {output_file}")
     return output_file

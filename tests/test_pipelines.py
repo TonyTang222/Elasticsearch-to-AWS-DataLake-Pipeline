@@ -19,28 +19,6 @@ class TestElasticsearchPipeline:
 
     @patch("pipelines.elasticsearch_pipeline.connect_elasticsearch")
     @patch("pipelines.elasticsearch_pipeline.extract_documents")
-    def test_pipeline_csv_output(self, mock_extract, mock_connect, tmp_path):
-        """Test full pipeline produces a valid CSV file."""
-        mock_connect.return_value = MagicMock()
-        mock_extract.return_value = [
-            {"id": "1", "message": "test1", "level": "INFO"},
-            {"id": "2", "message": "test2", "level": "ERROR"},
-        ]
-
-        with patch("pipelines.elasticsearch_pipeline.OUTPUT_PATH", str(tmp_path)):
-            result = elasticsearch_pipeline(
-                file_name="test_output", use_time_filter=False, output_format="csv", validate=True
-            )
-
-        assert result.endswith(".csv")
-        assert os.path.exists(result)
-
-        df = pd.read_csv(result)
-        assert len(df) == 2
-        assert "extracted_at" in df.columns
-
-    @patch("pipelines.elasticsearch_pipeline.connect_elasticsearch")
-    @patch("pipelines.elasticsearch_pipeline.extract_documents")
     def test_pipeline_parquet_output(self, mock_extract, mock_connect, tmp_path):
         """Test full pipeline produces a valid Parquet file."""
         mock_connect.return_value = MagicMock()
@@ -50,9 +28,7 @@ class TestElasticsearchPipeline:
         ]
 
         with patch("pipelines.elasticsearch_pipeline.OUTPUT_PATH", str(tmp_path)):
-            result = elasticsearch_pipeline(
-                file_name="test_output", use_time_filter=False, output_format="parquet", validate=True
-            )
+            result = elasticsearch_pipeline(file_name="test_output", use_time_filter=False, validate=True)
 
         assert result.endswith(".parquet")
         assert os.path.exists(result)
@@ -94,9 +70,7 @@ class TestElasticsearchPipeline:
         ]
 
         with patch("pipelines.elasticsearch_pipeline.OUTPUT_PATH", str(tmp_path)):
-            elasticsearch_pipeline(
-                file_name="test_output", use_time_filter=True, time_range_hours=12, output_format="csv", validate=False
-            )
+            elasticsearch_pipeline(file_name="test_output", use_time_filter=True, time_range_hours=12, validate=False)
 
         mock_extract_time.assert_called_once()
         call_kwargs = mock_extract_time.call_args[1]
@@ -113,10 +87,10 @@ class TestS3UploadPipeline:
         """Test uploading a specific file to S3."""
         mock_connect.return_value = MagicMock()
         mock_bucket.return_value = True
-        mock_upload.return_value = "s3://bucket/bronze/elasticsearch/2025-01-28/test.csv"
+        mock_upload.return_value = "s3://bucket/bronze/elasticsearch/2025-01-28/test.parquet"
 
-        test_file = tmp_path / "test.csv"
-        test_file.write_text("id,message\n1,test")
+        test_file = tmp_path / "test.parquet"
+        test_file.write_bytes(b"fake parquet data")
 
         result = upload_s3_pipeline(file_path=str(test_file))
 
@@ -131,7 +105,7 @@ class TestS3UploadPipeline:
         mock_bucket.return_value = True
 
         with pytest.raises(FileNotFoundError, match="File not found"):
-            upload_s3_pipeline(file_path="/nonexistent/path/file.csv")
+            upload_s3_pipeline(file_path="/nonexistent/path/file.parquet")
 
     @patch("pipelines.aws_s3_pipeline.OUTPUT_PATH", "/empty/dir/that/does/not/exist")
     @patch("pipelines.aws_s3_pipeline.connect_to_s3")
@@ -151,11 +125,11 @@ class TestS3UploadPipeline:
         """Test pipeline picks the latest file when no file_path is given."""
         mock_connect.return_value = MagicMock()
         mock_bucket.return_value = True
-        mock_upload.return_value = "s3://bucket/raw/data.parquet"
+        mock_upload.return_value = "s3://bucket/bronze/data.parquet"
 
         # Create two files
-        (tmp_path / "old.csv").write_text("old data")
-        (tmp_path / "new.parquet").write_text("new data")
+        (tmp_path / "old.parquet").write_bytes(b"old data")
+        (tmp_path / "new.parquet").write_bytes(b"new data")
 
         with patch("pipelines.aws_s3_pipeline.OUTPUT_PATH", str(tmp_path)):
             upload_s3_pipeline(file_path=None)

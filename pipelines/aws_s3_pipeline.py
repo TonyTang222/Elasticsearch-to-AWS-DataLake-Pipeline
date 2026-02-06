@@ -37,7 +37,7 @@ def upload_s3_pipeline(file_path: str = None, s3_prefix: str = "bronze/elasticse
     # Find file to upload
     if file_path is None:
         # Get the latest output file from output directory
-        output_files = glob.glob(f"{OUTPUT_PATH}/*.csv") + glob.glob(f"{OUTPUT_PATH}/*.parquet")
+        output_files = glob.glob(f"{OUTPUT_PATH}/*.parquet")
         if not output_files:
             raise FileNotFoundError(f"No output files found in {OUTPUT_PATH}")
         file_path = max(output_files, key=os.path.getctime)

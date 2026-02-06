@@ -50,21 +50,11 @@ class TestTriggerPipeline:
                 "/api/v1/pipelines/run",
                 json={
                     "index_name": "my-index",
-                    "output_format": "csv",
                     "upload_to_s3": False,
                     "time_range_hours": 48,
                 },
             )
         assert response.status_code == 202
-
-    def test_trigger_invalid_output_format(self, test_client):
-        response = test_client.post(
-            "/api/v1/pipelines/run",
-            json={
-                "output_format": "xml",
-            },
-        )
-        assert response.status_code == 422
 
     def test_trigger_invalid_time_range_zero(self, test_client):
         response = test_client.post(
@@ -158,7 +148,7 @@ class TestPipelineExecution:
             patch("api.routes.pipelines.upload_s3_pipeline") as mock_s3,
         ):
             mock_es.return_value = "/tmp/output.parquet"
-            mock_s3.return_value = "s3://bucket/raw/output.parquet"
+            mock_s3.return_value = "s3://bucket/bronze/output.parquet"
 
             response = test_client.post("/api/v1/pipelines/run", json={})
             run_id = response.json()["run_id"]
@@ -170,7 +160,7 @@ class TestPipelineExecution:
             data = detail.json()
             assert data["status"] == "completed"
             assert data["output_file"] == "/tmp/output.parquet"
-            assert data["s3_uri"] == "s3://bucket/raw/output.parquet"
+            assert data["s3_uri"] == "s3://bucket/bronze/output.parquet"
             assert data["duration_seconds"] is not None
 
     def test_pipeline_run_fails_on_error(self, test_client):
@@ -238,10 +228,10 @@ class TestDataEndpoints:
         with patch("api.routes.data.connect_to_s3"), patch("api.routes.data.list_s3_objects") as mock_list:
             mock_list.return_value = []
 
-            response = test_client.get("/api/v1/data/files?prefix=raw/custom")
+            response = test_client.get("/api/v1/data/files?prefix=bronze/custom")
             assert response.status_code == 200
             mock_list.assert_called_once()
-            assert mock_list.call_args[0][2] == "raw/custom"
+            assert mock_list.call_args[0][2] == "bronze/custom"
 
     def test_list_s3_files_s3_unavailable(self, test_client):
         with patch("api.routes.data.connect_to_s3") as mock_connect:
@@ -286,11 +276,11 @@ class TestParquetPreview:
         mock_s3.get_object.side_effect = mock_s3.exceptions.NoSuchKey(error_response, "GetObject")
 
         with patch("api.routes.data.connect_to_s3", return_value=mock_s3):
-            response = test_client.get("/api/v1/data/preview?s3_key=raw/nonexistent.parquet")
+            response = test_client.get("/api/v1/data/preview?s3_key=bronze/nonexistent.parquet")
         assert response.status_code == 404
 
     def test_preview_invalid_extension(self, test_client):
-        response = test_client.get("/api/v1/data/preview?s3_key=raw/data.csv")
+        response = test_client.get("/api/v1/data/preview?s3_key=bronze/data.txt")
         assert response.status_code == 422
 
 

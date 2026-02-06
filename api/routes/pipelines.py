@@ -36,7 +36,6 @@ def _execute_pipeline(store: RunStore, run_id: str, config: PipelineRunRequest):
             index_name=config.index_name,
             time_range_hours=config.time_range_hours,
             use_time_filter=config.use_time_filter,
-            output_format=config.output_format,
         )
 
         s3_uri = None

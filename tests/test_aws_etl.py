@@ -96,9 +96,9 @@ class TestUploadFileToS3:
         test_file = tmp_path / "test.csv"
         test_file.write_text("col1,col2\na,b")
 
-        result = upload_file_to_s3(mock_s3_client, str(test_file), "my-bucket", prefix="raw/data")
+        result = upload_file_to_s3(mock_s3_client, str(test_file), "my-bucket", prefix="bronze/data")
 
-        assert result.startswith("s3://my-bucket/raw/data/")
+        assert result.startswith("s3://my-bucket/bronze/data/")
         assert "test.csv" in result
         mock_s3_client.upload_file.assert_called_once()
 
@@ -151,9 +151,9 @@ class TestListS3Objects:
     def test_list_objects_with_prefix_filter(self, mock_s3_client):
         mock_paginator = MagicMock()
         mock_s3_client.get_paginator.return_value = mock_paginator
-        mock_paginator.paginate.return_value = [{"Contents": [{"Key": "raw/es/2025-01-28/data.parquet"}]}]
+        mock_paginator.paginate.return_value = [{"Contents": [{"Key": "bronze/es/2025-01-28/data.parquet"}]}]
 
-        result = list_s3_objects(mock_s3_client, "my-bucket", "raw/es/")
+        result = list_s3_objects(mock_s3_client, "my-bucket", "bronze/es/")
 
         assert len(result) == 1
-        mock_paginator.paginate.assert_called_once_with(Bucket="my-bucket", Prefix="raw/es/")
+        mock_paginator.paginate.assert_called_once_with(Bucket="my-bucket", Prefix="bronze/es/")

@@ -69,7 +69,7 @@ Elasticsearch-to-AWS-DataLake-Pipeline/
 ├── dags/
 │   └── elasticsearch_dag.py     # Airflow DAG with failure callbacks
 ├── etls/
-│   ├── elasticsearch_etl.py     # ES extraction, transform, CSV/Parquet
+│   ├── elasticsearch_etl.py     # ES extraction, transform, Parquet output
 │   ├── aws_etl.py               # S3 upload with pagination and IAM support
 │   └── iceberg_etl.py           # Iceberg table operations (PyIceberg)
 ├── pipelines/
