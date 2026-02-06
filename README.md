@@ -161,19 +161,11 @@ docker compose ps
 | Airflow | http://localhost:8080 | airflow / airflow |
 | Elasticsearch | http://localhost:9200 | - |
 
-### 6. Insert test data into Elasticsearch
+### 6. Load sample data into Elasticsearch
 
-Using Kibana Dev Tools or curl:
-
-```bash
-curl -X POST "localhost:9200/logs/_doc" -H 'Content-Type: application/json' -d'
-{
-  "@timestamp": "2026-01-28T10:00:00Z",
-  "level": "INFO",
-  "message": "Test log message",
-  "service": "api-gateway"
-}'
-```
+1. Go to Kibana at http://localhost:5601
+2. Navigate to Home → "Try sample data"
+3. Click "Add data" on "Sample web logs"
 
 ### 7. Start the API server (local development)
 
