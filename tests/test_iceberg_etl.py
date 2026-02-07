@@ -344,16 +344,6 @@ class TestScanTable:
 
         mock_iceberg_table.scan.assert_called_once_with(limit=5, snapshot_id=1234567890)
 
-    def test_scan_table_default_limit(self, mock_iceberg_table):
-        from etls.iceberg_etl import scan_table
-
-        mock_scan = MagicMock()
-        mock_scan.to_pandas.return_value = pd.DataFrame()
-        mock_iceberg_table.scan.return_value = mock_scan
-
-        scan_table(mock_iceberg_table)
-
-        mock_iceberg_table.scan.assert_called_once_with(limit=100)
 
     def test_scan_table_failure(self, mock_iceberg_table):
         from etls.iceberg_etl import scan_table

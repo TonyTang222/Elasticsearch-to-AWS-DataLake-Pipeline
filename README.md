@@ -46,7 +46,7 @@ ETL pipeline that extracts data from Elasticsearch and loads it into an AWS Lake
 - **Custom exception hierarchy** for granular error handling and resource cleanup
 - **IAM role support** with environment variable fallback for AWS credentials
 - **Idempotent DAG** using Airflow execution date for deterministic file naming
-- **Comprehensive test suite** with 120+ unit and integration tests
+- **Comprehensive test suite** with 100+ unit and integration tests
 
 ## Project Structure
 
@@ -136,7 +136,7 @@ export AWS_REGION=us-east-1
 export AWS_BUCKET_NAME=your-elasticsearch-datalake-bucket
 
 # Iceberg / Lakehouse (optional)
-export ICEBERG_CATALOG_TYPE=glue        # "glue" for AWS, "sqlite" for local dev
+export ICEBERG_CATALOG_TYPE=glue
 export ICEBERG_NAMESPACE=datalake
 export ICEBERG_TABLE_NAME=elasticsearch_logs
 export ICEBERG_WAREHOUSE_PATH=s3://your-bucket/silver
@@ -180,7 +180,7 @@ ES_HOST=localhost uvicorn api.main:app --reload
 ```bash
 curl -X POST http://localhost:8000/api/v1/pipelines/run \
   -H "Content-Type: application/json" \
-  -d '{"index_name": "logs", "output_format": "parquet"}'
+  -d '{"index_name": "kibana_sample_data_logs"}'
 ```
 
 **Via Airflow UI:**
@@ -214,7 +214,7 @@ The pipeline implements a two-layer lakehouse architecture on S3:
 
 **Silver Layer** (Iceberg Tables) - Curated, schema-managed data:
 - Apache Iceberg table format managed by PyIceberg
-- AWS Glue Catalog for metadata (SQLite supported for local dev)
+- AWS Glue Catalog for metadata management
 - Schema evolution without data rewrites
 - Snapshot history for time-travel queries
 - Partition evolution (default: `day(extracted_at)`)

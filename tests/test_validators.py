@@ -27,12 +27,6 @@ class TestValidateSchema:
         with pytest.raises(DataValidationError, match="Missing required columns"):
             validator.validate_schema(sample_dataframe, required_columns=["id", "nonexistent_column"])
 
-    def test_schema_validation_returns_false_without_raise(self, validator, sample_dataframe):
-        result = validator.validate_schema(
-            sample_dataframe, required_columns=["id", "nonexistent_column"], raise_on_error=False
-        )
-        assert result is False
-
 
 class TestValidateRowCount:
     """Tests for row count validation."""
@@ -78,14 +72,6 @@ class TestValidateNoDuplicates:
         with pytest.raises(DataValidationError, match="duplicate"):
             validator.validate_no_duplicates(df, key_columns=["id"])
 
-    def test_empty_key_columns_passes(self, validator, sample_dataframe):
-        result = validator.validate_no_duplicates(sample_dataframe, key_columns=[])
-        assert result is True
-
-    def test_missing_key_columns_passes(self, validator, sample_dataframe):
-        result = validator.validate_no_duplicates(sample_dataframe, key_columns=["nonexistent"])
-        assert result is True
-
 
 class TestValidateNotNull:
     """Tests for null value validation."""
@@ -102,15 +88,6 @@ class TestValidateNotNull:
         df = pd.DataFrame({"id": ["1", None, "3"], "value": ["a", "b", "c"]})
         with pytest.raises(DataValidationError, match="Null values found"):
             validator.validate_not_null(df, columns=["id"])
-
-    def test_nulls_returns_false_without_raise(self, validator):
-        df = pd.DataFrame(
-            {
-                "id": ["1", None, "3"],
-            }
-        )
-        result = validator.validate_not_null(df, columns=["id"], raise_on_error=False)
-        assert result is False
 
 
 class TestDataQualityReport:

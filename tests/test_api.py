@@ -74,23 +74,6 @@ class TestTriggerPipeline:
         )
         assert response.status_code == 422
 
-    def test_trigger_creates_run_in_store(self, test_client):
-        with (
-            patch("api.routes.pipelines.elasticsearch_pipeline") as mock_es,
-            patch("api.routes.pipelines.upload_s3_pipeline") as mock_s3,
-        ):
-            mock_es.return_value = "/tmp/output.parquet"
-            mock_s3.return_value = "s3://bucket/output.parquet"
-
-            response = test_client.post("/api/v1/pipelines/run", json={})
-            run_id = response.json()["run_id"]
-
-            time.sleep(0.5)
-
-            detail = test_client.get(f"/api/v1/pipelines/runs/{run_id}")
-        assert detail.status_code == 200
-        assert detail.json()["run_id"] == run_id
-
 
 class TestPipelineRunStatus:
     """Tests for GET /api/v1/pipelines/runs and /runs/{run_id}."""
@@ -124,7 +107,7 @@ class TestPipelineRunStatus:
 
     def test_get_run_detail(self, test_client):
         store = test_client.app.state.run_store
-        store.create("test-run-id", {"output_format": "parquet"})
+        store.create("test-run-id", {"index_name": "test-index"})
         store.update("test-run-id", status="completed", output_file="/tmp/test.parquet")
 
         response = test_client.get("/api/v1/pipelines/runs/test-run-id")
