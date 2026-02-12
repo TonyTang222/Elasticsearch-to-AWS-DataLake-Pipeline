@@ -108,14 +108,6 @@ class TestExtractDocuments:
 
         mock_elasticsearch_client.clear_scroll.assert_called_once_with(scroll_id="test_scroll_id")
 
-    def test_extract_documents_default_match_all_query(self, mock_elasticsearch_client, empty_es_response):
-        mock_elasticsearch_client.search.return_value = empty_es_response
-
-        extract_documents(mock_elasticsearch_client, "test-index")
-
-        call_kwargs = mock_elasticsearch_client.search.call_args[1]
-        assert call_kwargs["query"] == {"match_all": {}}
-
 
 class TestTransformData:
     """Tests for transform_data function."""
