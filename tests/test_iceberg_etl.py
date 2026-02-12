@@ -344,7 +344,6 @@ class TestScanTable:
 
         mock_iceberg_table.scan.assert_called_once_with(limit=5, snapshot_id=1234567890)
 
-
     def test_scan_table_failure(self, mock_iceberg_table):
         from etls.iceberg_etl import scan_table
 

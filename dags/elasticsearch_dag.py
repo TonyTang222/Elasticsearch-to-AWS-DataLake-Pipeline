@@ -72,9 +72,7 @@ def extract_elasticsearch_data(**kwargs):
 
     logger.info(f"Starting extraction for date: {ds}")
 
-    output_path = elasticsearch_pipeline(
-        file_name=file_name, time_range_hours=24, use_time_filter=True, validate=True
-    )
+    output_path = elasticsearch_pipeline(file_name=file_name, time_range_hours=24, use_time_filter=True, validate=True)
 
     logger.info(f"Extraction complete: {output_path}")
     return output_path
