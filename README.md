@@ -113,7 +113,7 @@ cd Elasticsearch-to-AWS-DataLake-Pipeline
 # Set up Python environment
 python -m venv venv
 source venv/bin/activate  # macOS/Linux
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Configure credentials
 cp config/config.conf.example config/config.conf
